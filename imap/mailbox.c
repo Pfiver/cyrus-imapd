@@ -3683,7 +3683,7 @@ static int mailbox_update_caldav(struct mailbox *mailbox,
             if (r) goto alarmdone;
         }
 
-        r = caldav_writeentry(caldavdb, cdata, ical);
+        r = caldav_writeical(caldavdb, cdata, ical);
 
      alarmdone:
         icalcomponent_free(ical);
