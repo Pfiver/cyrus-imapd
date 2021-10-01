@@ -91,6 +91,19 @@
     " UNIQUE( mailbox, resource ) );"                                   \
     "CREATE INDEX IF NOT EXISTS idx_ical_uid ON ical_objs ( ical_uid );"
 
+#define CMD_CREATE_JSCALOBJS                                            \
+    "CREATE TABLE IF NOT EXISTS jscal_objs ("                           \
+    " rowid INTEGER NOT NULL,"                                          \
+    " ical_recurid TEXT NOT NULL DEFAULT '',"                           \
+    " modseq INTEGER NOT NULL,"                                         \
+    " createdmodseq INTEGER NOT NULL,"                                  \
+    " dtstart TEXT NOT NULL,"                                           \
+    " dtend TEXT NOT NULL,"                                             \
+    " alive INTEGER NOT NULL,"                                          \
+    " ical_guid TEXT NOT NULL,"                                         \
+    " PRIMARY KEY (rowid, ical_recurid)"                                \
+    " FOREIGN KEY (rowid) REFERENCES ical_objs (rowid) ON DELETE CASCADE );"
+
 #define CMD_CREATE_CARD                                                 \
     "CREATE TABLE IF NOT EXISTS vcard_objs ("                           \
     " rowid INTEGER PRIMARY KEY,"                                       \
@@ -158,6 +171,7 @@
     " UNIQUE( mailbox, imap_uid ),"                                     \
     " UNIQUE( mailbox, resource ) );"                                   \
 
+// dropped in version 12
 #define CMD_CREATE_CALCACHE                                             \
     "CREATE TABLE IF NOT EXISTS ical_jmapcache ("                       \
     " rowid INTEGER NOT NULL,"                                          \
@@ -166,6 +180,16 @@
     " jmapdata TEXT NOT NULL,"                                          \
     " PRIMARY KEY (rowid, userid)"                                      \
     " FOREIGN KEY (rowid) REFERENCES ical_objs (rowid) ON DELETE CASCADE );"
+
+#define CMD_CREATE_JSCALCACHE                                           \
+    "CREATE TABLE IF NOT EXISTS jscal_cache ("                          \
+    " rowid INTEGER NOT NULL,"                                          \
+    " ical_recurid TEXT NOT NULL,"                                      \
+    " userid TEXT NOT NULL,"                                            \
+    " version INTEGER NOT NULL,"                                        \
+    " data TEXT NOT NULL,"                                              \
+    " PRIMARY KEY (rowid, ical_recurid, userid)"                             \
+    " FOREIGN KEY (rowid, ical_recurid) REFERENCES jscal_objs (rowid, ical_recurid) ON DELETE CASCADE );"
 
 #define CMD_CREATE_CARDCACHE                                            \
     "CREATE TABLE IF NOT EXISTS vcard_jmapcache ("                      \
@@ -176,7 +200,8 @@
 
 
 #define CMD_CREATE CMD_CREATE_CAL CMD_CREATE_CARD CMD_CREATE_EM CMD_CREATE_GR \
-                   CMD_CREATE_OBJS CMD_CREATE_CALCACHE CMD_CREATE_CARDCACHE
+                   CMD_CREATE_OBJS CMD_CREATE_CARDCACHE \
+                   CMD_CREATE_JSCALOBJS CMD_CREATE_JSCALCACHE
 
 /* leaves these unused columns around, but that's life.  A dav_reconstruct
  * will fix them */
@@ -220,6 +245,12 @@
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_vcard_imapuid ON vcard_objs ( mailbox, imap_uid );" \
     "CREATE UNIQUE INDEX IF NOT EXISTS idx_object_imapuid ON dav_objs ( mailbox, imap_uid );"
 
+#define CMD_DBUPGRADEv11 \
+    CMD_CREATE_JSCALOBJS \
+    "DROP TABLE ical_jmapcache;" CMD_CREATE_JSCALCACHE \
+    "INSERT INTO jscal_objs" \
+    " SELECT rowid, '', modseq, createdmodseq, dtstart, dtend, alive, '' FROM ical_objs;"
+
 struct sqldb_upgrade davdb_upgrade[] = {
   { 2, CMD_DBUPGRADEv2, NULL },
   { 3, CMD_DBUPGRADEv3, NULL },
@@ -230,11 +261,12 @@ struct sqldb_upgrade davdb_upgrade[] = {
   { 8, CMD_DBUPGRADEv8, NULL },
   { 9, CMD_DBUPGRADEv9, NULL },
   { 10, CMD_DBUPGRADEv10, NULL },
-  /* Don't upgrade to version 11.  We only jump to 11 on CREATE */
+  { 11, CMD_DBUPGRADEv11, NULL },
+  /* Don't upgrade to version 12.  We only jump to 12 on CREATE */
   { 0, NULL, NULL }
 };
 
-#define DB_VERSION 11
+#define DB_VERSION 12
 
 static sqldb_t *reconstruct_db;
 

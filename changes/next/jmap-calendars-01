@@ -9,4 +9,5 @@ for the timezone guessing database.
 
 Upgrade instructions:
 
-TBD.
+Installations MUST run dav_reconstruct to migrate their existing calendaring
+data to the new database schema.
