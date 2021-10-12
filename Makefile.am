@@ -1266,6 +1266,8 @@ imap_httpd_SOURCES = \
 	imap/http_h2.c \
 	imap/http_h2.h \
 	imap/http_ischedule.c \
+	imap/http_jwt.c \
+	imap/http_jwt.h \
 	imap/http_prometheus.c \
 	imap/http_proxy.c \
 	imap/http_proxy.h \
@@ -1295,6 +1297,14 @@ imap_httpd_SOURCES = \
 	master/service.c
 
 imap_httpd_LDADD = $(LD_SIEVE_ADD) $(LD_SERVER_ADD)
+
+if CUNIT
+
+cunit_TESTS += cunit/http_jwt.testc
+
+cunit_unit_SOURCES += imap/http_jwt.c
+
+endif # CUNIT
 
 if JMAP
 BUILT_SOURCES += \
